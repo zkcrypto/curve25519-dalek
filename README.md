@@ -45,7 +45,7 @@ make doc-internal
 To import `curve25519-dalek`, add the following to the dependencies section of
 your project's `Cargo.toml`:
 ```toml
-curve25519-dalek-ng = "4"
+curve25519-dalek-ng = "4.1"
 ```
 
 To switch from the previous `curve25519-dalek` crate without changing your code,
