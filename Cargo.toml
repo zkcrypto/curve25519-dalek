@@ -4,7 +4,7 @@ name = "curve25519-dalek-ng"
 # - update CHANGELOG
 # - update html_root_url
 # - update README if required by semver
-version = "4.0.1"
+version = "4.1.0"
 authors = ["Isis Lovecruft <isis@patternsinthevoid.net>",
            "Henry de Valence <hdevalence@hdevalence.ca>"]
 readme = "README.md"
@@ -39,7 +39,7 @@ harness = false
 rand_core = { version = "0.6", default-features = false }
 byteorder = { version = "^1.2.3", default-features = false, features = ["i128"] }
 digest = { version = "0.9", default-features = false }
-subtle = { package = "subtle-ng", version = "^2.2.1", default-features = false }
+subtle = { package = "subtle-ng", version = "2.5", default-features = false }
 serde = { version = "1.0", default-features = false, optional = true, features = ["derive"] }
 # The original packed_simd package was orphaned, see
 # https://github.com/rust-lang/packed_simd/issues/303#issuecomment-701361161

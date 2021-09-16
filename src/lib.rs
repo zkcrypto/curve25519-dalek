@@ -9,21 +9,11 @@
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
 #![no_std]
-#![cfg_attr(feature = "nightly", feature(test))]
-#![cfg_attr(feature = "nightly", feature(external_doc))]
-#![cfg_attr(feature = "nightly", feature(doc_cfg))]
 #![cfg_attr(feature = "simd_backend", feature(stdsimd))]
-// Refuse to compile if documentation is missing, but only on nightly.
-//
-// This means that missing docs will still fail CI, but means we can use
-// README.md as the crate documentation.
-#![cfg_attr(feature = "nightly", deny(missing_docs))]
 
-#![cfg_attr(feature = "nightly", doc(include = "../README.md"))]
-#![doc(html_root_url = "https://docs.rs/curve25519-dalek-ng/4.0.1")]
-
-//! Note that docs will only build on nightly Rust until
-//! [RFC 1990 stabilizes](https://github.com/rust-lang/rust/issues/44732).
+#![deny(missing_docs)]
+#![doc = include_str!("../README.md")]
+#![doc(html_root_url = "https://docs.rs/curve25519-dalek-ng/4.1.0")]
 
 //------------------------------------------------------------------------
 // External dependencies:
