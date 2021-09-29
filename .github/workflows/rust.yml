@@ -51,6 +51,8 @@ jobs:
         toolchain: nightly
         override: true
     - uses: actions-rs/cargo@v1
+      env:
+        RUSTFLAGS: -C target-feature=+avx2
       with:
         command: test
         args: --no-default-features --features "std simd_backend"

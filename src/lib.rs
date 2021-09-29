@@ -10,7 +10,7 @@
 
 #![no_std]
 #![cfg_attr(feature = "simd_backend", feature(stdsimd))]
-
+#![cfg_attr(feature = "nightly", feature(doc_cfg))]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
 #![doc(html_root_url = "https://docs.rs/curve25519-dalek-ng/4.1.0")]
