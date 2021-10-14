@@ -4,6 +4,10 @@ Entries are listed in reverse chronological order per major series.
 
 ## 4.x series
 
+### 4.1.1
+
+* Fix missing `doc(cfg(...))` when using the `simd_backend` feature.
+
 ### 4.1.0
 
 * Update `subtle-ng` to `2.5` and replace the deprecated `#[doc(include())]`

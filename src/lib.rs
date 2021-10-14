@@ -13,7 +13,7 @@
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
 #![deny(missing_docs)]
 #![doc = include_str!("../README.md")]
-#![doc(html_root_url = "https://docs.rs/curve25519-dalek-ng/4.1.0")]
+#![doc(html_root_url = "https://docs.rs/curve25519-dalek-ng/4.1.1")]
 
 //------------------------------------------------------------------------
 // External dependencies:
