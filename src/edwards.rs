@@ -93,12 +93,13 @@
 #![allow(non_snake_case)]
 
 use core::borrow::Borrow;
-use core::fmt::Debug;
+use core::fmt;
 use core::iter::Iterator;
 use core::iter::Sum;
 use core::ops::{Add, Neg, Sub};
 use core::ops::{AddAssign, SubAssign};
 use core::ops::{Mul, MulAssign};
+use core::convert::TryFrom;
 
 use subtle::Choice;
 use subtle::ConditionallyNegatable;
@@ -159,8 +160,8 @@ impl ConstantTimeEq for CompressedEdwardsY {
     }
 }
 
-impl Debug for CompressedEdwardsY {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+impl fmt::Debug for CompressedEdwardsY {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "CompressedEdwardsY: {:?}", self.as_bytes())
     }
 }
@@ -250,7 +251,7 @@ impl<'de> Deserialize<'de> for EdwardsPoint {
         impl<'de> Visitor<'de> for EdwardsPointVisitor {
             type Value = EdwardsPoint;
 
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a valid point in Edwards y + sign format")
             }
 
@@ -282,7 +283,7 @@ impl<'de> Deserialize<'de> for CompressedEdwardsY {
         impl<'de> Visitor<'de> for CompressedEdwardsYVisitor {
             type Value = CompressedEdwardsY;
 
-            fn expecting(&self, formatter: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("32 bytes of data")
             }
 
@@ -366,6 +367,27 @@ impl Default for EdwardsPoint {
         EdwardsPoint::identity()
     }
 }
+
+impl TryFrom<[u8; 32]> for EdwardsPoint {
+    type Error = InvalidYCoordinate;
+
+    fn try_from(bytes: [u8; 32]) -> Result<Self, Self::Error> {
+        CompressedEdwardsY(bytes).decompress().ok_or(InvalidYCoordinate)
+    }
+}
+
+/// Error type in case the provided bytes don't represent a valid Y coordinate of a curve point.
+#[derive(Debug)]
+pub struct InvalidYCoordinate;
+
+impl fmt::Display for InvalidYCoordinate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "given bytes are not a valid Y coordinate of a curve point")
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for InvalidYCoordinate { }
 
 // ------------------------------------------------------------------------
 // Validity checks (for debugging, not CT)
@@ -923,8 +945,8 @@ impl EdwardsPoint {
 // Debug traits
 // ------------------------------------------------------------------------
 
-impl Debug for EdwardsPoint {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+impl fmt::Debug for EdwardsPoint {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "EdwardsPoint{{\n\tX: {:?},\n\tY: {:?},\n\tZ: {:?},\n\tT: {:?}\n}}",
                &self.X, &self.Y, &self.Z, &self.T)
     }
