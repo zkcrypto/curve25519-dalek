@@ -573,7 +573,7 @@ impl Scalar {
     /// ```
     /// # extern crate curve25519_dalek_ng;
     /// # use curve25519_dalek_ng::scalar::Scalar;
-    /// extern crate sha2;
+    /// # extern crate sha2;
     ///
     /// use sha2::Sha512;
     ///
@@ -603,9 +603,10 @@ impl Scalar {
     /// ```
     /// # extern crate curve25519_dalek_ng;
     /// # use curve25519_dalek_ng::scalar::Scalar;
-    /// extern crate sha2;
+    /// # extern crate digest;
+    /// # extern crate sha2;
     ///
-    /// use sha2::Digest;
+    /// use digest::{Digest, Update};
     /// use sha2::Sha512;
     ///
     /// # fn main() {
