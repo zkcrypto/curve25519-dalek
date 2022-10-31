@@ -21,7 +21,7 @@
 //! arm instructions.
 
 use core::ops::{Add, Mul, Neg};
-use packed_simd::{u32x8, u32x4, u32x2, i32x4, u8x16, u64x4, u64x2, IntoBits};
+use packed_simd::{u32x4, u32x2, i32x4, u8x16, u64x4, u64x2, IntoBits};
 
 use backend::vector::neon::constants::{P_TIMES_16_HI, P_TIMES_16_LO, P_TIMES_2_HI, P_TIMES_2_LO};
 use backend::serial::u64::field::FieldElement51;
@@ -55,18 +55,17 @@ fn unpack_pair(src: (u32x4, u32x4)) -> ((u32x2, u32x2), (u32x2, u32x2)) {
 #[inline(always)]
 fn repack_pair(x: (u32x4, u32x4), y: (u32x4, u32x4)) -> (u32x4, u32x4) {
     unsafe {
-        use core::arch::aarch64::vqtbl1q_u8;
-        use core::arch::aarch64::vorrq_u32;
+        use core::arch::aarch64::vget_low_u32;
+        use core::arch::aarch64::vcombine_u32;
+        use core::arch::aarch64::vset_lane_u32;
+        use core::arch::aarch64::vgetq_lane_u32;
 
-        const idx_high: packed_simd::Simd<[u8; 16]> = u8x16::new( 0,  1,  2,  3,  8,  9, 10, 11, 16, 16, 16, 16, 16, 16, 16, 16);
-        const idx_low : packed_simd::Simd<[u8; 16]> = u8x16::new(16, 16, 16, 16, 16, 16, 16, 16,  0,  1,  2,  3,  8,  9, 10, 11);
-        let x_shuffled: (u8x16, u8x16) = (vqtbl1q_u8(x.0.into_bits(), idx_high.into_bits()).into_bits(),
-                                          vqtbl1q_u8(x.1.into_bits(), idx_high.into_bits()).into_bits());
-        let y_shuffled: (u8x16, u8x16) = (vqtbl1q_u8(y.0.into_bits(), idx_low.into_bits()).into_bits(), 
-                                          vqtbl1q_u8(y.1.into_bits(), idx_low.into_bits()).into_bits());
-
-        return (vorrq_u32(x_shuffled.0.into_bits(), y_shuffled.0.into_bits()).into_bits(), 
-                vorrq_u32(x_shuffled.1.into_bits(), y_shuffled.1.into_bits()).into_bits());
+        (vcombine_u32(
+                vset_lane_u32(vgetq_lane_u32(x.0.into_bits(), 2) , vget_low_u32(x.0.into_bits()), 1), 
+                vset_lane_u32(vgetq_lane_u32(y.0.into_bits(), 2) , vget_low_u32(y.0.into_bits()), 1)).into_bits(),                          
+         vcombine_u32(
+                vset_lane_u32(vgetq_lane_u32(x.1.into_bits(), 2) , vget_low_u32(x.1.into_bits()), 1), 
+                vset_lane_u32(vgetq_lane_u32(y.1.into_bits(), 2) , vget_low_u32(y.1.into_bits()), 1)).into_bits())
     }
 }
 
@@ -94,6 +93,24 @@ pub enum Shuffle {
     BADC,
     BACD,
     ABDC,
+}
+
+macro_rules! lane_shuffle {
+    {$l0:expr, $l1:expr, $l2:expr, $l3:expr, $l4:expr, $l5:expr, $l6:expr, $l7:expr, $x:expr} => {
+        unsafe {
+            use core::arch::aarch64::vgetq_lane_u32;
+            const c: [i32; 8] = [$l0, $l1, $l2, $l3, $l4, $l5, $l6, $l7];
+            (u32x4::new(if c[0] < 4 { vgetq_lane_u32($x.0.into_bits(), c[0]) } else { vgetq_lane_u32($x.1.into_bits(), c[0] - 4) }, 
+                        if c[1] < 4 { vgetq_lane_u32($x.0.into_bits(), c[1]) } else { vgetq_lane_u32($x.1.into_bits(), c[1] - 4) }, 
+                        if c[2] < 4 { vgetq_lane_u32($x.0.into_bits(), c[2]) } else { vgetq_lane_u32($x.1.into_bits(), c[2] - 4) }, 
+                        if c[3] < 4 { vgetq_lane_u32($x.0.into_bits(), c[3]) } else { vgetq_lane_u32($x.1.into_bits(), c[3] - 4) }),
+             u32x4::new(if c[4] < 4 { vgetq_lane_u32($x.0.into_bits(), c[4]) } else { vgetq_lane_u32($x.1.into_bits(), c[4] - 4) }, 
+                        if c[5] < 4 { vgetq_lane_u32($x.0.into_bits(), c[5]) } else { vgetq_lane_u32($x.1.into_bits(), c[5] - 4) }, 
+                        if c[6] < 4 { vgetq_lane_u32($x.0.into_bits(), c[6]) } else { vgetq_lane_u32($x.1.into_bits(), c[6] - 4) }, 
+                        if c[7] < 4 { vgetq_lane_u32($x.0.into_bits(), c[7]) } else { vgetq_lane_u32($x.1.into_bits(), c[7] - 4) }))
+        }
+        
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -162,64 +179,21 @@ impl FieldElement2625x4 {
         out
     }
 
-    /// Used double vqtbx1q_u8 intructions, so 4 instead of normally needed 2, 
-    /// because of the need to put limbs from the second vector of limbs into 
-    /// the first vector and vice versa.
     #[inline]
     pub fn shuffle(&self, control: Shuffle) -> FieldElement2625x4 {
         #[inline(always)]
         fn shuffle_lanes(x: (u32x4, u32x4), control: Shuffle) -> (u32x4, u32x4) {
-            unsafe {
-                use core::arch::aarch64::vqtbx1q_u8;
-
-                let c: (u8x16, u8x16, u8x16, u8x16) = match control {
-                    Shuffle::BADC => (u8x16::new( 4,  5,  6,  7,  0,  1,  2,  3, 12, 13, 14, 15,  8,  9, 10, 11), // Reorder first vector
-                                      u8x16::new( 4,  5,  6,  7,  0,  1,  2,  3, 12, 13, 14, 15,  8,  9, 10, 11), // Reorder second vector
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15), // Not used
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15)),// Not used
-                    Shuffle::ABAB => (u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15), // Take first vector
-                                      u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16), // Ignore second vector, take reordered first vector
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15), // Not used
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15)),// Take first vector
-                    Shuffle::AAAA => (u8x16::new( 0,  1,  2,  3,  0,  1,  2,  3,  8,  9, 10, 11,  8,  9, 10, 11), // p(v1) || (p(v2) || p(0)) <\      p(x) = permute(x)  
-                                      u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16), // p(v2) || (p(v1) || p(0))  |  <\
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15), // p(v2)                    _/   |
-                                      u8x16::new( 0,  1,  2,  3,  0,  1,  2,  3,  8,  9, 10, 11,  8,  9, 10, 11)),// p(v1)                        _/  
-                    Shuffle::BBBB => (u8x16::new( 4,  5,  6,  7,  4,  5,  6,  7, 12, 13, 14, 15, 12, 13, 14, 15),
-                                      u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15),
-                                      u8x16::new( 4,  5,  6,  7,  4,  5,  6,  7, 12, 13, 14, 15, 12, 13, 14, 15)),
-                    Shuffle::DBBD => (u8x16::new(16, 16, 16, 16,  4,  5,  6,  7, 16, 16, 16, 16, 12, 13, 14, 15),
-                                      u8x16::new(16, 16, 16, 16,  4,  5,  6,  7, 16, 16, 16, 16, 12, 13, 14, 15),
-                                      u8x16::new( 4,  5,  6,  7,  4,  5,  6,  7, 12, 13, 14, 15, 12, 13, 14, 15),
-                                      u8x16::new( 4,  5,  6,  7,  4,  5,  6,  7, 12, 13, 14, 15, 12, 13, 14, 15)),
-                    Shuffle::CACA => (u8x16::new(16, 16, 16, 16,  0,  1,  2,  3, 16, 16, 16, 16,  8,  9, 10, 11),
-                                      u8x16::new( 0,  1,  2,  3, 16, 16, 16, 16,  8,  9, 10, 11, 16, 16, 16, 16),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15),
-                                      u8x16::new( 0,  1,  2,  3,  0,  1,  2,  3,  8,  9, 10, 11,  8,  9, 10, 11)),
-                    Shuffle::BACD => (u8x16::new( 4,  5,  6,  7,  0,  1,  2,  3, 12, 13, 14, 15,  8,  9, 10, 11),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15)),
-                    Shuffle::ABDC => (u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15),
-                                      u8x16::new( 4,  5,  6,  7,  0,  1,  2,  3, 12, 13, 14, 15,  8,  9, 10, 11),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15)),
-                    Shuffle::ADDA => (u8x16::new( 0,  1,  2,  3, 16, 16, 16, 16,  8,  9, 10, 11, 16, 16, 16, 16),
-                                      u8x16::new( 4,  5,  6,  7, 16, 16, 16, 16, 12, 13, 14, 15, 16, 16, 16, 16),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15),
-                                      u8x16::new( 0,  1,  2,  3,  0,  1,  2,  3,  8,  9, 10, 11,  8,  9, 10, 11)),
-                    Shuffle::CBCB => (u8x16::new(16, 16, 16, 16,  4,  5,  6,  7, 16, 16, 16, 16, 12, 13, 14, 15),
-                                      u8x16::new( 0,  1,  2,  3, 16, 16, 16, 16,  8,  9, 10, 11, 16, 16, 16, 16),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15),
-                                      u8x16::new( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15))
-                };
-                (vqtbx1q_u8(vqtbx1q_u8(u32x4::splat(0).into_bits(), x.1.into_bits(), c.2.into_bits()),
-                            x.0.into_bits(),
-                            c.0.into_bits()).into_bits(),
-                 vqtbx1q_u8(vqtbx1q_u8(u32x4::splat(0).into_bits(), x.0.into_bits(), c.3.into_bits()),
-                            x.1.into_bits(),
-                            c.1.into_bits()).into_bits())
+            match control {
+                Shuffle::AAAA => lane_shuffle!(0, 0, 2, 2, 0, 0, 2, 2, x),
+                Shuffle::BBBB => lane_shuffle!(1, 1, 3, 3, 1, 1, 3, 3, x),
+                Shuffle::CACA => lane_shuffle!(4, 0, 6, 2, 4, 0, 6, 2, x),
+                Shuffle::DBBD => lane_shuffle!(5, 1, 7, 3, 1, 5, 3, 7, x),
+                Shuffle::ADDA => lane_shuffle!(0, 5, 2, 7, 5, 0, 7, 2, x),
+                Shuffle::CBCB => lane_shuffle!(4, 1, 6, 3, 4, 1, 6, 3, x),
+                Shuffle::ABAB => lane_shuffle!(0, 1, 2, 3, 0, 1, 2, 3, x),
+                Shuffle::BADC => lane_shuffle!(1, 0, 3, 2, 5, 4, 7, 6, x),
+                Shuffle::BACD => lane_shuffle!(1, 0, 3, 2, 4, 5, 6, 7, x),
+                Shuffle::ABDC => lane_shuffle!(0, 1, 2, 3, 5, 4, 7, 6, x),
             }
         }
 
@@ -232,6 +206,7 @@ impl FieldElement2625x4 {
         ])
     }
 
+    // Can probably be sped up using multiple vset/vget instead of table
     #[inline]
     pub fn blend(&self, other: FieldElement2625x4, control: Lanes) -> FieldElement2625x4 {
         #[inline(always)]
@@ -240,11 +215,11 @@ impl FieldElement2625x4 {
                 use core::arch::aarch64::vqtbx1q_u8;
                 match control {
                     Lanes::C => {
-                        (vqtbx1q_u8(x.0.into_bits(), y.0.into_bits(), u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16).into_bits()).into_bits(),
+                        (x.0,
                          vqtbx1q_u8(x.1.into_bits(), y.1.into_bits(), u8x16::new( 0,  1,  2,  3, 16, 16, 16, 16,  8,  9, 10, 11, 16, 16, 16, 16).into_bits()).into_bits())
                     }
                     Lanes::D => {
-                        (vqtbx1q_u8(x.0.into_bits(), y.0.into_bits(), u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16).into_bits()).into_bits(),
+                        (x.0,
                          vqtbx1q_u8(x.1.into_bits(), y.1.into_bits(), u8x16::new(16, 16, 16, 16,  4,  5,  6,  7, 16, 16, 16, 16, 12, 13, 14, 15).into_bits()).into_bits())
                     }
                     Lanes::AD => {
@@ -354,20 +329,25 @@ impl FieldElement2625x4 {
         let rotated_carryout = |v: (u32x4, u32x4)| -> (u32x4, u32x4) {
             unsafe {
                 use core::arch::aarch64::vqshlq_u32;
-                use core::arch::aarch64::vqtbl1q_u8;
+                use core::arch::aarch64::vget_low_u32;
+                use core::arch::aarch64::vget_high_u32;
+                use core::arch::aarch64::vcombine_u32;
 
-                let c: (u32x4, u32x4) = (vqshlq_u32(v.0.into_bits(), shifts.0.into_bits()).into_bits(), vqshlq_u32(v.1.into_bits(), shifts.1.into_bits()).into_bits());
-                (vqtbl1q_u8(c.0.into_bits(), u8x16::new(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7).into_bits()).into_bits(),
-                 vqtbl1q_u8(c.1.into_bits(), u8x16::new(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7).into_bits()).into_bits())
+                let c: (u32x4, u32x4) = (vqshlq_u32(v.0.into_bits(), shifts.0.into_bits()).into_bits(), 
+                                         vqshlq_u32(v.1.into_bits(), shifts.1.into_bits()).into_bits());
+                (vcombine_u32(vget_high_u32(c.0.into_bits()), vget_low_u32(c.0.into_bits())).into_bits(),
+                 vcombine_u32(vget_high_u32(c.1.into_bits()), vget_low_u32(c.1.into_bits())).into_bits())
 
             }
         };
 
         let combine = |v_lo: (u32x4, u32x4), v_hi: (u32x4, u32x4)| -> (u32x4, u32x4) {
             unsafe {
-                use core::arch::aarch64::vqtbx1q_u8;
-                (vqtbx1q_u8(v_lo.0.into_bits(), v_hi.0.into_bits(), u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 8, 9, 10, 11, 12, 13, 14, 15).into_bits()).into_bits(),
-                 vqtbx1q_u8(v_lo.1.into_bits(), v_hi.1.into_bits(), u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 8, 9, 10, 11, 12, 13, 14, 15).into_bits()).into_bits())
+                use core::arch::aarch64::vget_low_u32;
+                use core::arch::aarch64::vget_high_u32;
+                use core::arch::aarch64::vcombine_u32;
+                (vcombine_u32(vget_low_u32(v_lo.0.into_bits()), vget_high_u32(v_hi.0.into_bits())).into_bits(),
+                 vcombine_u32(vget_low_u32(v_lo.1.into_bits()), vget_high_u32(v_hi.1.into_bits())).into_bits())
             }
         };
 
@@ -395,12 +375,13 @@ impl FieldElement2625x4 {
 
         let c9_19: (u32x4, u32x4)  = unsafe {
             use core::arch::aarch64::vmulq_n_u32;
-            use core::arch::aarch64::vqtbl1q_u8;
+            use core::arch::aarch64::vget_low_u32;
+            use core::arch::aarch64::vcombine_u32;
             
             let c9_19_spread: (u32x4, u32x4) = (vmulq_n_u32(c98.0.into_bits(), 19).into_bits(), vmulq_n_u32(c98.1.into_bits(), 19).into_bits());
 
-            (vqtbl1q_u8(c9_19_spread.0.into_bits(), u8x16::new(0, 1, 2, 3, 4, 5, 6, 7, 16, 16, 16, 16, 16, 16, 16, 16).into_bits()).into_bits(),
-             vqtbl1q_u8(c9_19_spread.1.into_bits(), u8x16::new(0, 1, 2, 3, 4, 5, 6, 7, 16, 16, 16, 16, 16, 16, 16, 16).into_bits()).into_bits())
+            (vcombine_u32(vget_low_u32(c9_19_spread.0.into_bits()), u32x2::splat(0).into_bits()).into_bits(),
+             vcombine_u32(vget_low_u32(c9_19_spread.1.into_bits()), u32x2::splat(0).into_bits()).into_bits())
         };
         v[0] = (v[0].0 + c9_19.0, v[0].1 + c9_19.1);
 
@@ -524,13 +505,16 @@ impl FieldElement2625x4 {
 
         let negate_D = |x_01: u64x4, p_01: u64x4| -> (u64x2, u64x2) {
             unsafe {
-                use core::arch::aarch64::vqtbx1q_u8;
+                use core::arch::aarch64::vget_low_u32;
+                use core::arch::aarch64::vget_high_u32;
+                use core::arch::aarch64::vcombine_u32;
 
                 let x = (u64x2::new(x_01.extract(0), x_01.extract(1)), u64x2::new(x_01.extract(2), x_01.extract(3)));
                 let p = (u64x2::new(p_01.extract(0), p_01.extract(1)), u64x2::new(p_01.extract(2), p_01.extract(3)));
 
-                (vqtbx1q_u8(x.0.into_bits(), (p.0 - x.0).into_bits(), u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16).into_bits()).into_bits(),
-                 vqtbx1q_u8(x.1.into_bits(), (p.1 - x.1).into_bits(), u8x16::new(16, 16, 16, 16, 16, 16, 16, 16, 8, 9, 10, 11, 12, 13, 14, 15).into_bits()).into_bits())
+                (x.0.into_bits(),
+                 vcombine_u32(vget_low_u32(x.1.into_bits()),
+                              vget_high_u32((p.1 - x.1).into_bits())).into_bits())
             }
         };
 
