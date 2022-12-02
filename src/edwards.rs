@@ -132,12 +132,12 @@ use traits::{VartimeMultiscalarMul, VartimePrecomputedMultiscalarMul};
 
 #[cfg(not(all(
     feature = "simd_backend",
-    any(target_feature = "avx2", target_feature = "avx512ifma")
+    any(target_feature = "avx2", target_feature = "avx512ifma",  target_feature = "neon")
 )))]
 use backend::serial::scalar_mul;
 #[cfg(all(
     feature = "simd_backend",
-    any(target_feature = "avx2", target_feature = "avx512ifma")
+    any(target_feature = "avx2", target_feature = "avx512ifma",  target_feature = "neon")
 ))]
 use backend::vector::scalar_mul;
 

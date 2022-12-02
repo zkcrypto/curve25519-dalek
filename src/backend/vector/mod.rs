@@ -11,8 +11,8 @@
 // Conditionally include the notes if we're on nightly (so we can include docs at all).
 #![doc = include_str!("../../../docs/parallel-formulas.md")]
 
-#[cfg(not(any(target_feature = "avx2", target_feature = "avx512ifma", rustdoc)))]
-compile_error!("simd_backend selected without target_feature=+avx2 or +avx512ifma");
+#[cfg(not(any(target_feature = "avx2", target_feature = "avx512ifma", target_feature = "neon", rustdoc)))]
+compile_error!("simd_backend selected without target_feature=+avx2 or +avx512ifma or +neon");
 
 #[cfg(any(
     all(target_feature = "avx2", not(target_feature = "avx512ifma")),
@@ -33,6 +33,14 @@ pub(crate) use self::avx2::{
 pub mod ifma;
 #[cfg(target_feature = "avx512ifma")]
 pub(crate) use self::ifma::{
+    constants::BASEPOINT_ODD_LOOKUP_TABLE, edwards::CachedPoint, edwards::ExtendedPoint,
+};
+
+#[cfg(any(target_feature = "neon", rustdoc))]
+#[doc(cfg(target_feature = "neon"))]
+pub mod neon;
+#[cfg(target_feature = "neon")]
+pub(crate) use self::neon::{
     constants::BASEPOINT_ODD_LOOKUP_TABLE, edwards::CachedPoint, edwards::ExtendedPoint,
 };
 

@@ -38,6 +38,6 @@ pub mod curve_models;
 
 #[cfg(not(all(
     feature = "simd_backend",
-    any(target_feature = "avx2", target_feature = "avx512ifma")
+    any(target_feature = "avx2", target_feature = "avx512ifma",  target_feature = "neon")
 )))]
 pub mod scalar_mul;
