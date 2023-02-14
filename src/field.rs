@@ -23,6 +23,7 @@
 //! field inversion or square roots, are defined here.
 
 use core::cmp::{Eq, PartialEq};
+use core::ops::Deref;
 
 use subtle::ConditionallySelectable;
 use subtle::ConditionallyNegatable;
@@ -69,8 +70,237 @@ impl ConstantTimeEq for FieldElement {
     }
 }
 
+/// A cannonical representation of a field element, regardless of backend.
+/// 
+/// # Remarks
+/// This is the same representation as the u32 backend and is suitable for
+/// use with GPU acceleration.
+pub struct Field26(pub [u32; 10]);
+
+impl Deref for Field26 {
+    type Target = [u32; 10];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Field26 {
+    fn reduce(mut z: [u64; 10]) -> Self {
+
+        const LOW_25_BITS: u64 = (1 << 25) - 1;
+        const LOW_26_BITS: u64 = (1 << 26) - 1;
+
+        /// Carry the value from limb i = 0..8 to limb i+1
+        #[inline(always)]
+        fn carry(z: &mut [u64; 10], i: usize) {
+            debug_assert!(i < 9);
+            if i % 2 == 0 {
+                // Even limbs have 26 bits
+                z[i+1] += z[i] >> 26;
+                z[i] &= LOW_26_BITS;
+            } else {
+                // Odd limbs have 25 bits
+                z[i+1] += z[i] >> 25;
+                z[i] &= LOW_25_BITS;
+            }
+        }
+
+        // Perform two halves of the carry chain in parallel.
+        carry(&mut z, 0); carry(&mut z, 4);
+        carry(&mut z, 1); carry(&mut z, 5);
+        carry(&mut z, 2); carry(&mut z, 6);
+        carry(&mut z, 3); carry(&mut z, 7);
+        // Since z[3] < 2^64, c < 2^(64-25) = 2^39,
+        // so    z[4] < 2^26 + 2^39 < 2^39.0002
+        carry(&mut z, 4); carry(&mut z, 8);
+        // Now z[4] < 2^26
+        // and z[5] < 2^25 + 2^13.0002 < 2^25.0004 (good enough)
+
+        // Last carry has a multiplication by 19:
+        z[0] += 19*(z[9] >> 25);
+        z[9] &= LOW_25_BITS;
+
+        // Since z[9] < 2^64, c < 2^(64-25) = 2^39,
+        //    so z[0] + 19*c < 2^26 + 2^43.248 < 2^43.249.
+        carry(&mut z, 0);
+        // Now z[1] < 2^25 - 2^(43.249 - 26)
+        //          < 2^25.007 (good enough)
+        // and we're done.
+
+        Self([
+            z[0] as u32, z[1] as u32, z[2] as u32, z[3] as u32, z[4] as u32,
+            z[5] as u32, z[6] as u32, z[7] as u32, z[8] as u32, z[9] as u32,
+        ])
+    }
+
+    fn from_bytes(data: &[u8]) -> Self {
+        #[inline]
+        fn load3(b: &[u8]) -> u64 {
+        (b[0] as u64) | ((b[1] as u64) << 8) | ((b[2] as u64) << 16)
+        }
+
+        #[inline]
+        fn load4(b: &[u8]) -> u64 {
+        (b[0] as u64) | ((b[1] as u64) << 8) | ((b[2] as u64) << 16) | ((b[3] as u64) << 24)
+        }
+
+        let mut h = [0u64;10];
+        const LOW_23_BITS: u64 = (1 << 23) - 1;
+        h[0] =  load4(&data[ 0..]);
+        h[1] =  load3(&data[ 4..]) << 6;
+        h[2] =  load3(&data[ 7..]) << 5;
+        h[3] =  load3(&data[10..]) << 3;
+        h[4] =  load3(&data[13..]) << 2;
+        h[5] =  load4(&data[16..]);
+        h[6] =  load3(&data[20..]) << 7;
+        h[7] =  load3(&data[23..]) << 5;
+        h[8] =  load3(&data[26..]) << 4;
+        h[9] = (load3(&data[29..]) & LOW_23_BITS) << 2;
+
+        Self::reduce(h)
+    }
+
+    fn to_bytes(&self) -> [u8; 32] {
+        let inp = &self.0;
+        // Reduce the value represented by `in` to the range [0,2*p)
+        let mut h: [u32; 10] = Self::reduce([
+            // XXX this cast is annoying
+            inp[0] as u64, inp[1] as u64, inp[2] as u64, inp[3] as u64, inp[4] as u64,
+            inp[5] as u64, inp[6] as u64, inp[7] as u64, inp[8] as u64, inp[9] as u64,
+        ]).0;
+
+        // Let h be the value to encode.
+        //
+        // Write h = pq + r with 0 <= r < p.  We want to compute r = h mod p.
+        //
+        // Since h < 2*p, q = 0 or 1, with q = 0 when h < p and q = 1 when h >= p.
+        //
+        // Notice that h >= p <==> h + 19 >= p + 19 <==> h + 19 >= 2^255.
+        // Therefore q can be computed as the carry bit of h + 19.
+        let mut q: u32 = (h[0] + 19) >> 26;
+        q = (h[1] + q) >> 25;
+        q = (h[2] + q) >> 26;
+        q = (h[3] + q) >> 25;
+        q = (h[4] + q) >> 26;
+        q = (h[5] + q) >> 25;
+        q = (h[6] + q) >> 26;
+        q = (h[7] + q) >> 25;
+        q = (h[8] + q) >> 26;
+        q = (h[9] + q) >> 25;
+
+        debug_assert!( q == 0 || q == 1 );
+
+        // Now we can compute r as r = h - pq = r - (2^255-19)q = r + 19q - 2^255q
+
+        const LOW_25_BITS: u32 = (1 << 25) - 1;
+        const LOW_26_BITS: u32 = (1 << 26) - 1;
+
+        h[0] += 19*q;
+
+        // Now carry the result to compute r + 19q...
+        h[1] += h[0] >> 26;
+        h[0] = h[0] & LOW_26_BITS;
+        h[2] += h[1] >> 25;
+        h[1] = h[1] & LOW_25_BITS;
+        h[3] += h[2] >> 26;
+        h[2] = h[2] & LOW_26_BITS;
+        h[4] += h[3] >> 25;
+        h[3] = h[3] & LOW_25_BITS;
+        h[5] += h[4] >> 26;
+        h[4] = h[4] & LOW_26_BITS;
+        h[6] += h[5] >> 25;
+        h[5] = h[5] & LOW_25_BITS;
+        h[7] += h[6] >> 26;
+        h[6] = h[6] & LOW_26_BITS;
+        h[8] += h[7] >> 25;
+        h[7] = h[7] & LOW_25_BITS;
+        h[9] += h[8] >> 26;
+        h[8] = h[8] & LOW_26_BITS;
+
+        // ... but instead of carrying the value
+        // (h[9] >> 25) = q*2^255 into another limb,
+        // discard it, subtracting the value from h.
+        debug_assert!( (h[9] >> 25) == 0 || (h[9] >> 25) == 1);
+        h[9] = h[9] & LOW_25_BITS;
+
+        let mut s = [0u8; 32];
+        s[0] = (h[0] >> 0) as u8;
+        s[1] = (h[0] >> 8) as u8;
+        s[2] = (h[0] >> 16) as u8;
+        s[3] = ((h[0] >> 24) | (h[1] << 2)) as u8;
+        s[4] = (h[1] >> 6) as u8;
+        s[5] = (h[1] >> 14) as u8;
+        s[6] = ((h[1] >> 22) | (h[2] << 3)) as u8;
+        s[7] = (h[2] >> 5) as u8;
+        s[8] = (h[2] >> 13) as u8;
+        s[9] = ((h[2] >> 21) | (h[3] << 5)) as u8;
+        s[10] = (h[3] >> 3) as u8;
+        s[11] = (h[3] >> 11) as u8;
+        s[12] = ((h[3] >> 19) | (h[4] << 6)) as u8;
+        s[13] = (h[4] >> 2) as u8;
+        s[14] = (h[4] >> 10) as u8;
+        s[15] = (h[4] >> 18) as u8;
+        s[16] = (h[5] >> 0) as u8;
+        s[17] = (h[5] >> 8) as u8;
+        s[18] = (h[5] >> 16) as u8;
+        s[19] = ((h[5] >> 24) | (h[6] << 1)) as u8;
+        s[20] = (h[6] >> 7) as u8;
+        s[21] = (h[6] >> 15) as u8;
+        s[22] = ((h[6] >> 23) | (h[7] << 3)) as u8;
+        s[23] = (h[7] >> 5) as u8;
+        s[24] = (h[7] >> 13) as u8;
+        s[25] = ((h[7] >> 21) | (h[8] << 4)) as u8;
+        s[26] = (h[8] >> 4) as u8;
+        s[27] = (h[8] >> 12) as u8;
+        s[28] = ((h[8] >> 20) | (h[9] << 6)) as u8;
+        s[29] = (h[9] >> 2) as u8;
+        s[30] = (h[9] >> 10) as u8;
+        s[31] = (h[9] >> 18) as u8;
+
+        // Check that high bit is cleared
+        debug_assert!((s[31] & 0b1000_0000u8) == 0u8);
+
+        s
+    }
+
+    #[cfg(feature = "u32_backend")]
+    /// Creates a backend-specific field element.
+    pub fn to_field(&self) -> FieldElement {
+        FieldElement(self.0)
+    }
+
+    #[cfg(feature = "u64_backend")]
+    /// Creates a backend-specific field element.
+    pub fn to_field(&self) -> FieldElement {
+        FieldElement::from_bytes(&self.to_bytes())
+    }
+}
+
 impl FieldElement {
-    fn to_u29() -> 
+    /// Converts this field to have 10 29-bit limbs. This is the same layout
+    /// used in the u32 backend and is the canonical representation for 
+    /// GPU acceleration.
+    /// 
+    /// # Warning
+    /// This function requires the given field has been reduced.
+    #[cfg(feature = "u32_backend")]
+    pub fn to_u29(self) -> Field26 {
+        Field26(self.0)
+    }
+
+    /// Converts this field to have 10 29-bit limbs. This is the layout
+    /// used in the u32 backend and is the canonical representation for 
+    /// GPU acceleration.
+    ///
+    /// # Warning
+    /// This function requires the given field has been reduced.
+    #[cfg(feature = "u64_backend")]
+    pub fn to_u29(self) -> Field26 {
+        // Convert the 52 bit limbs into 8-bit limbs
+        let bytes = self.to_bytes();
+        Field26::from_bytes(&bytes)
+    }
 
     /// Determine if this `FieldElement` is negative, in the sense
     /// used in the ed25519 paper: `x` is negative if the low bit is
@@ -458,5 +688,14 @@ mod test {
     #[test]
     fn batch_invert_empty() {
         FieldElement::batch_invert(&mut []);
+    }
+
+    #[test]
+    fn can_convert_field_elements() {
+        let a = FieldElement::from_bytes(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]);
+
+        let b = a.to_u29().to_field();
+
+        assert_eq!(a, b);
     }
 }

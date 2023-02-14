@@ -483,8 +483,8 @@ impl RistrettoPoint {
     /// in a batch.
     ///
     /// ```
-    /// # extern crate curve25519_dalek_ng;
-    /// # use curve25519_dalek_ng::ristretto::RistrettoPoint;
+    /// # extern crate sunscreen_curve25519;
+    /// # use sunscreen_curve25519::ristretto::RistrettoPoint;
     /// extern crate rand_core;
     /// use rand_core::OsRng;
     ///
@@ -672,8 +672,8 @@ impl RistrettoPoint {
     /// # Example
     ///
     /// ```
-    /// # extern crate curve25519_dalek_ng;
-    /// # use curve25519_dalek_ng::ristretto::RistrettoPoint;
+    /// # extern crate sunscreen_curve25519;
+    /// # use sunscreen_curve25519::ristretto::RistrettoPoint;
     /// extern crate sha2;
     /// use sha2::Sha512;
     ///
@@ -982,8 +982,8 @@ impl RistrettoPoint {
 /// A precomputed table of multiples of the Ristretto basepoint is
 /// available in the `constants` module:
 /// ```
-/// use curve25519_dalek_ng::constants;
-/// use curve25519_dalek_ng::scalar::Scalar;
+/// use sunscreen_curve25519::constants;
+/// use sunscreen_curve25519::scalar::Scalar;
 ///
 /// let a = Scalar::from(87329482u64);
 /// let P = &a * &constants::RISTRETTO_BASEPOINT_TABLE;
@@ -1030,14 +1030,14 @@ impl ConditionallySelectable for RistrettoPoint {
     ///
     /// ```
     /// # extern crate subtle;
-    /// # extern crate curve25519_dalek_ng;
+    /// # extern crate sunscreen_curve25519;
     /// #
     /// use subtle::ConditionallySelectable;
     /// use subtle::Choice;
     /// #
-    /// # use curve25519_dalek_ng::traits::Identity;
-    /// # use curve25519_dalek_ng::ristretto::RistrettoPoint;
-    /// # use curve25519_dalek_ng::constants;
+    /// # use sunscreen_curve25519::traits::Identity;
+    /// # use sunscreen_curve25519::ristretto::RistrettoPoint;
+    /// # use sunscreen_curve25519::constants;
     /// # fn main() {
     ///
     /// let A = RistrettoPoint::identity();

@@ -68,10 +68,10 @@ pub trait MultiscalarMul {
     /// iterators returning either `Scalar`s or `&Scalar`s.
     ///
     /// ```
-    /// use curve25519_dalek_ng::constants;
-    /// use curve25519_dalek_ng::traits::MultiscalarMul;
-    /// use curve25519_dalek_ng::ristretto::RistrettoPoint;
-    /// use curve25519_dalek_ng::scalar::Scalar;
+    /// use sunscreen_curve25519::constants;
+    /// use sunscreen_curve25519::traits::MultiscalarMul;
+    /// use sunscreen_curve25519::ristretto::RistrettoPoint;
+    /// use sunscreen_curve25519::scalar::Scalar;
     ///
     /// // Some scalars
     /// let a = Scalar::from(87329482u64);
@@ -120,10 +120,10 @@ pub trait VartimeMultiscalarMul {
     /// inlining point decompression into the multiscalar call,
     /// avoiding the need for temporary buffers.
     /// ```
-    /// use curve25519_dalek_ng::constants;
-    /// use curve25519_dalek_ng::traits::VartimeMultiscalarMul;
-    /// use curve25519_dalek_ng::ristretto::RistrettoPoint;
-    /// use curve25519_dalek_ng::scalar::Scalar;
+    /// use sunscreen_curve25519::constants;
+    /// use sunscreen_curve25519::traits::VartimeMultiscalarMul;
+    /// use sunscreen_curve25519::ristretto::RistrettoPoint;
+    /// use sunscreen_curve25519::scalar::Scalar;
     ///
     /// // Some scalars
     /// let a = Scalar::from(87329482u64);
@@ -183,10 +183,10 @@ pub trait VartimeMultiscalarMul {
     /// iterators returning either `Scalar`s or `&Scalar`s.
     ///
     /// ```
-    /// use curve25519_dalek_ng::constants;
-    /// use curve25519_dalek_ng::traits::VartimeMultiscalarMul;
-    /// use curve25519_dalek_ng::ristretto::RistrettoPoint;
-    /// use curve25519_dalek_ng::scalar::Scalar;
+    /// use sunscreen_curve25519::constants;
+    /// use sunscreen_curve25519::traits::VartimeMultiscalarMul;
+    /// use sunscreen_curve25519::ristretto::RistrettoPoint;
+    /// use sunscreen_curve25519::scalar::Scalar;
     ///
     /// // Some scalars
     /// let a = Scalar::from(87329482u64);
