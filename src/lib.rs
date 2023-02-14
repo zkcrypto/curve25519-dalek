@@ -75,7 +75,7 @@ pub mod traits;
 
 // Finite field arithmetic mod p = 2^255 - 19
 pub(crate) mod field;
-pub use field::Field26;
+pub use field::CannonicalFieldElement;
 
 // Arithmetic backends (using u32, u64, etc) live here
 pub(crate) mod backend;

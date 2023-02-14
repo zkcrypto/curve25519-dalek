@@ -75,9 +75,9 @@ impl ConstantTimeEq for FieldElement {
 /// # Remarks
 /// This is the same representation as the u32 backend and is suitable for
 /// use with GPU acceleration.
-pub struct Field26(pub [u32; 10]);
+pub struct CannonicalFieldElement(pub [u32; 10]);
 
-impl Deref for Field26 {
+impl Deref for CannonicalFieldElement {
     type Target = [u32; 10];
 
     fn deref(&self) -> &Self::Target {
@@ -85,7 +85,7 @@ impl Deref for Field26 {
     }
 }
 
-impl Field26 {
+impl CannonicalFieldElement {
     fn reduce(mut z: [u64; 10]) -> Self {
 
         const LOW_25_BITS: u64 = (1 << 25) - 1;
@@ -285,8 +285,8 @@ impl FieldElement {
     /// # Warning
     /// This function requires the given field has been reduced.
     #[cfg(feature = "u32_backend")]
-    pub fn to_u29(self) -> Field26 {
-        Field26(self.0)
+    pub fn to_u29(self) -> CannonicalFieldElement {
+        CannonicalFieldElement(self.0)
     }
 
     /// Converts this field to have 10 29-bit limbs. This is the layout
@@ -296,10 +296,10 @@ impl FieldElement {
     /// # Warning
     /// This function requires the given field has been reduced.
     #[cfg(feature = "u64_backend")]
-    pub fn to_u29(self) -> Field26 {
+    pub fn to_u29(self) -> CannonicalFieldElement {
         // Convert the 52 bit limbs into 8-bit limbs
         let bytes = self.to_bytes();
-        Field26::from_bytes(&bytes)
+        CannonicalFieldElement::from_bytes(&bytes)
     }
 
     /// Determine if this `FieldElement` is negative, in the sense

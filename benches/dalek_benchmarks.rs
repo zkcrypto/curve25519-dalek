@@ -10,8 +10,8 @@ extern crate criterion;
 use criterion::BatchSize;
 use criterion::Criterion;
 
-extern crate curve25519_dalek_ng;
-use curve25519_dalek_ng as curve25519_dalek;
+extern crate sunscreen_curve25519;
+use sunscreen_curve25519 as curve25519_dalek;
 
 use curve25519_dalek::constants;
 use curve25519_dalek::scalar::Scalar;
