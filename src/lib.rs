@@ -51,21 +51,27 @@ pub(crate) mod macros;
 // curve25519-dalek public modules
 //------------------------------------------------------------------------
 
+#[rustfmt::skip]
 // Scalar arithmetic mod l = 2^252 + ..., the order of the Ristretto group
 pub mod scalar;
 
+#[rustfmt::skip]
 // Point operations on the Montgomery form of Curve25519
 pub mod montgomery;
 
+#[rustfmt::skip]
 // Point operations on the Edwards form of Curve25519
 pub mod edwards;
 
+#[rustfmt::skip]
 // Group operations on the Ristretto group
 pub mod ristretto;
 
+#[rustfmt::skip]
 // Useful constants, like the Ed25519 basepoint
 pub mod constants;
 
+#[rustfmt::skip]
 // External (and internal) traits.
 pub mod traits;
 
@@ -73,15 +79,19 @@ pub mod traits;
 // curve25519-dalek internal modules
 //------------------------------------------------------------------------
 
+#[rustfmt::skip]
 // Finite field arithmetic mod p = 2^255 - 19
 pub(crate) mod field;
 pub use field::CannonicalFieldElement;
 
+#[rustfmt::skip]
 // Arithmetic backends (using u32, u64, etc) live here
 pub(crate) mod backend;
 
+#[rustfmt::skip]
 // Crate-local prelude (for alloc-dependent features like `Vec`)
 pub(crate) mod prelude;
 
+#[rustfmt::skip]
 // Generic code for window lookups
 pub(crate) mod window;
