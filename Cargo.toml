@@ -1,5 +1,5 @@
 [package]
-name = "curve25519-dalek-ng"
+name = "sunscreen_curve25519"
 # Before incrementing:
 # - update CHANGELOG
 # - update html_root_url
