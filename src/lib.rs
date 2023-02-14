@@ -8,6 +8,7 @@
 // - Isis Agora Lovecruft <isis@patternsinthevoid.net>
 // - Henry de Valence <hdevalence@hdevalence.ca>
 
+#![allow(clippy::all)]
 #![no_std]
 #![cfg_attr(feature = "simd_backend", feature(stdsimd))]
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
