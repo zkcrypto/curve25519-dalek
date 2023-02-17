@@ -7,7 +7,7 @@
 // Authors:
 // - Isis Agora Lovecruft <isis@patternsinthevoid.net>
 // - Henry de Valence <hdevalence@hdevalence.ca>
-
+#![allow(rustdoc::broken_intra_doc_links)]
 #![allow(clippy::all)]
 #![no_std]
 #![cfg_attr(feature = "simd_backend", feature(stdsimd))]
