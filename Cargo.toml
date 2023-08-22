@@ -4,9 +4,11 @@ name = "sunscreen_curve25519"
 # - update CHANGELOG
 # - update html_root_url
 # - update README if required by semver
-version = "4.1.1"
-authors = ["Isis Lovecruft <isis@patternsinthevoid.net>",
-           "Henry de Valence <hdevalence@hdevalence.ca>"]
+version = "0.8.0"
+authors = [
+    "Isis Lovecruft <isis@patternsinthevoid.net>",
+    "Henry de Valence <hdevalence@hdevalence.ca>",
+]
 readme = "README.md"
 license = "BSD-3-Clause"
 repository = "https://github.com/zkcrypto/curve25519-dalek-ng"
@@ -14,11 +16,7 @@ documentation = "https://docs.rs/curve25519-dalek-ng"
 categories = ["cryptography", "no-std"]
 keywords = ["cryptography", "crypto", "ristretto", "curve25519", "ristretto255"]
 description = "A pure-Rust implementation of group operations on ristretto255 and Curve25519"
-exclude = [
-    "**/.gitignore",
-    ".gitignore",
-    ".travis.yml",
-]
+exclude = ["**/.gitignore", ".gitignore", ".travis.yml"]
 
 [package.metadata.docs.rs]
 # Disabled for now since this is borked; tracking https://github.com/rust-lang/docs.rs/issues/302
@@ -37,13 +35,19 @@ harness = false
 
 [dependencies]
 rand_core = { version = "0.6", default-features = false }
-byteorder = { version = "^1.2.3", default-features = false, features = ["i128"] }
+byteorder = { version = "^1.2.3", default-features = false, features = [
+    "i128",
+] }
 digest = { version = "0.9", default-features = false }
 subtle = { package = "subtle-ng", version = "2.5", default-features = false }
-serde = { version = "1.0", default-features = false, optional = true, features = ["derive"] }
+serde = { version = "1.0", default-features = false, optional = true, features = [
+    "derive",
+] }
 # The original packed_simd package was orphaned, see
 # https://github.com/rust-lang/packed_simd/issues/303#issuecomment-701361161
-packed_simd = { version = "0.3.4", package = "packed_simd_2", features = ["into_bits"], optional = true }
+packed_simd = { version = "0.3.4", package = "packed_simd_2", features = [
+    "into_bits",
+], optional = true }
 zeroize = { version = "1", default-features = false }
 
 [features]
