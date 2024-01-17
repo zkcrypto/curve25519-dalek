@@ -33,7 +33,7 @@ macro_rules! define_add_variants {
                 &self + &rhs
             }
         }
-    };
+    }
 }
 
 /// Define non-borrow variants of `AddAssign`.
@@ -44,7 +44,7 @@ macro_rules! define_add_assign_variants {
                 *self += &rhs;
             }
         }
-    };
+    }
 }
 
 /// Define borrow and non-borrow variants of `Sub`.
@@ -70,7 +70,7 @@ macro_rules! define_sub_variants {
                 &self - &rhs
             }
         }
-    };
+    }
 }
 
 /// Define non-borrow variants of `SubAssign`.
@@ -81,7 +81,7 @@ macro_rules! define_sub_assign_variants {
                 *self -= &rhs;
             }
         }
-    };
+    }
 }
 
 /// Define borrow and non-borrow variants of `Mul`.
@@ -107,7 +107,7 @@ macro_rules! define_mul_variants {
                 &self * &rhs
             }
         }
-    };
+    }
 }
 
 /// Define non-borrow variants of `MulAssign`.
@@ -118,5 +118,6 @@ macro_rules! define_mul_assign_variants {
                 *self *= &rhs;
             }
         }
-    };
+    }
 }
+

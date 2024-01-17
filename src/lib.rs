@@ -7,8 +7,13 @@
 // Authors:
 // - Isis Agora Lovecruft <isis@patternsinthevoid.net>
 // - Henry de Valence <hdevalence@hdevalence.ca>
-#![allow(rustdoc::broken_intra_doc_links)]
+
+// sunscreen allowances
+#![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(clippy::all)]
+#![allow(rustdoc::broken_intra_doc_links)]
+#![allow(unused_imports, noop_method_call)]
+
 #![no_std]
 #![cfg_attr(feature = "simd_backend", feature(stdsimd))]
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
@@ -46,6 +51,7 @@ extern crate serde;
 
 // Internal macros. Must come first!
 #[macro_use]
+#[rustfmt::skip]
 pub(crate) mod macros;
 
 //------------------------------------------------------------------------

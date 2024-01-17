@@ -33,7 +33,8 @@ use subtle::ConstantTimeEq;
 use constants;
 use backend;
 
-
+#[cfg(feature = "u64_backend")]
+pub use backend::serial::u64::field::*;
 /// A `FieldElement` represents an element of the field
 /// \\( \mathbb Z / (2\^{255} - 19)\\).
 ///
