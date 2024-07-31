@@ -165,6 +165,13 @@ impl Debug for CompressedEdwardsY {
     }
 }
 
+cfg_if::cfg_if! {
+    if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
+        use sp1_lib::syscall_ed_decompress;
+        use core::convert::TryInto;
+    }
+}
+
 impl CompressedEdwardsY {
     /// View this `CompressedEdwardsY` as an array of bytes.
     pub fn as_bytes(&self) -> &[u8; 32] {
@@ -181,6 +188,24 @@ impl CompressedEdwardsY {
     /// Returns `None` if the input is not the \\(y\\)-coordinate of a
     /// curve point.
     pub fn decompress(&self) -> Option<EdwardsPoint> {
+        cfg_if::cfg_if! {
+            if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
+                    let mut XY_bytes = [0_u8; 64];
+                    XY_bytes[32..].copy_from_slice(self.as_bytes());
+                    unsafe {
+                        syscall_ed_decompress(&mut XY_bytes);
+                    }
+                    let X = FieldElement::from_bytes(&XY_bytes[0..32].try_into().unwrap());
+                    let Y = FieldElement::from_bytes(&XY_bytes[32..].try_into().unwrap());
+                    let Z = FieldElement::one();
+                    return Some(EdwardsPoint {
+                        X,
+                        Y,
+                        Z,
+                        T: &X * &Y,
+                    });
+            }
+        }
         let Y = FieldElement::from_bytes(self.as_bytes());
         let Z = FieldElement::one();
         let YY = Y.square();
