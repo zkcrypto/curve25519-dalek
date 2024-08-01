@@ -5,7 +5,7 @@ use scalar::Scalar;
 use edwards::EdwardsPoint;
 use backend::serial::curve_models::{ProjectiveNielsPoint, ProjectivePoint};
 use window::LookupTable;
-use crate::backend::serial::u64::constants::ED25519_BASEPOINT_POINT;
+use crate::constants::ED25519_BASEPOINT_POINT;
 use prelude::Vec;
 
 #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
