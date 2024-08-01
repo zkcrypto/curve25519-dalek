@@ -26,7 +26,7 @@ pub(crate) fn mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
     //    s*P = P*s_0 + 16*(P*s_1 + 16*(P*s_2 + 16*( ... + P*s_63)...))
     //
     // We sum right-to-left.
-    
+
     // Unwrap first loop iteration to save computing 16*identity
     let mut tmp2;
     let mut tmp3 = EdwardsPoint::identity();
