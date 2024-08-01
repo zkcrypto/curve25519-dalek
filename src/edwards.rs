@@ -130,16 +130,18 @@ use traits::MultiscalarMul;
 #[cfg(any(feature = "alloc", feature = "std"))]
 use traits::{VartimeMultiscalarMul, VartimePrecomputedMultiscalarMul};
 
-#[cfg(not(all(
-    feature = "simd_backend",
-    any(target_feature = "avx2", target_feature = "avx512ifma")
-)))]
-use backend::serial::scalar_mul;
-#[cfg(all(
-    feature = "simd_backend",
-    any(target_feature = "avx2", target_feature = "avx512ifma")
-))]
-use backend::vector::scalar_mul;
+cfg_if::cfg_if! {
+    if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
+        use backend::zkvm::scalar_mul;
+    } else if #[cfg(all(
+        feature = "simd_backend",
+        any(target_feature = "avx2", target_feature = "avx512ifma")
+    ))] {
+        use backend::vector::scalar_mul;
+    } else {
+        use backend::serial::scalar_mul;
+    }
+}
 
 // ------------------------------------------------------------------------
 // Compressed points

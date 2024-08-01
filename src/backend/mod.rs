@@ -60,3 +60,9 @@ pub mod serial;
     ))))
 )]
 pub mod vector;
+
+#[cfg(all(
+    target_os = "zkvm",
+    target_vendor = "succinct",
+))]
+pub mod zkvm;
