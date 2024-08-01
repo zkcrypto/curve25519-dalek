@@ -143,7 +143,8 @@ use backend::vector::scalar_mul;
 
 cfg_if::cfg_if! {
     if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-        use sp1_lib::{ed25519::Ed25519AffinePoint, utils::AffinePoint};
+        use sp1_lib::{ed25519::Ed25519AffinePoint, utils::AffinePoint, syscall_ed_decompress};
+        use core::convert::TryInto;
 
         impl From<EdwardsPoint> for Ed25519AffinePoint {
             fn from(value: EdwardsPoint) -> Self {
@@ -204,13 +205,6 @@ impl ConstantTimeEq for CompressedEdwardsY {
 impl Debug for CompressedEdwardsY {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "CompressedEdwardsY: {:?}", self.as_bytes())
-    }
-}
-
-cfg_if::cfg_if! {
-    if #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))] {
-        use sp1_lib::syscall_ed_decompress;
-        use core::convert::TryInto;
     }
 }
 
