@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
-use scalar::Scalar;
 use traits::Identity;
+use scalar::Scalar;
 use edwards::EdwardsPoint;
 use backend::serial::curve_models::{ProjectiveNielsPoint, ProjectivePoint};
 use window::LookupTable;
