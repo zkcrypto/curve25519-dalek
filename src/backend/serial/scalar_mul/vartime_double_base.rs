@@ -19,7 +19,7 @@ use crate::backend::serial::u64::constants::ED25519_BASEPOINT_POINT;
 use prelude::Vec;
 
 #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
-/// Perform constant-time, variable-base scalar multiplication.
+/// Compute \\(aA + bB\\) in variable time, where \\(B\\) is the Ed25519 basepoint.
 pub fn mul(a: &Scalar, A: &EdwardsPoint, b: &Scalar) -> EdwardsPoint {
     let a_naf = a.non_adjacent_form(5);
     let b_naf = b.non_adjacent_form(8);
@@ -68,7 +68,7 @@ use sp1_lib::{ed25519::Ed25519AffinePoint, utils::AffinePoint};
 #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))]
 /// Compute \\(aA + bB\\) in variable time, where \\(B\\) is the Ed25519 basepoint.
 ///
-/// Acclerated with SP1's multi-scalar multiplication and EdAdd precompiles.
+/// Acclerated with SP1's EdAdd precompile.
 #[allow(non_snake_case)]
 pub fn mul(a: &Scalar, A: &EdwardsPoint, b: &Scalar) -> EdwardsPoint {
     let A: Ed25519AffinePoint = (*A).into();

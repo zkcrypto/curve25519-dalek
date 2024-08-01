@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
 
-use edwards::EdwardsPoint;
 use scalar::Scalar;
 use traits::Identity;
+use edwards::EdwardsPoint;
 use backend::serial::curve_models::{ProjectiveNielsPoint, ProjectivePoint};
 use window::LookupTable;
 use crate::backend::serial::u64::constants::ED25519_BASEPOINT_POINT;
@@ -53,7 +53,7 @@ use sp1_lib::{ed25519::Ed25519AffinePoint, utils::AffinePoint};
 #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))]
 /// Perform constant-time, variable-base scalar multiplication.
 ///
-/// Acclerated with SP1's multi-scalar multiplication and EdAdd precompiles.
+/// Acclerated with SP1's EdAdd precompile.
 #[allow(non_snake_case)]
 pub(crate) fn mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
     let ed_point: Ed25519AffinePoint = (*point).into();
