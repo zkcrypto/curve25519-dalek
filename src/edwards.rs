@@ -247,6 +247,8 @@ impl CompressedEdwardsY {
     ///
     /// Returns `None` if the input is not the \\(y\\)-coordinate of a
     /// curve point.
+    /// 
+    /// Accelerated with SP1's EdDecompress syscall.
     pub fn decompress(&self) -> Option<EdwardsPoint> {
         let mut XY_bytes = [0_u8; 64];
         XY_bytes[32..].copy_from_slice(self.as_bytes());

@@ -9,14 +9,14 @@
 // - Henry de Valence <hdevalence@hdevalence.ca>
 #![allow(non_snake_case)]
 
-use constants;
-use traits::Identity;
-use scalar::Scalar;
-use edwards::EdwardsPoint;
-use backend::serial::curve_models::{ProjectiveNielsPoint, ProjectivePoint};
-use window::NafLookupTable5;
 use crate::constants::ED25519_BASEPOINT_POINT;
+use backend::serial::curve_models::{ProjectiveNielsPoint, ProjectivePoint};
+use constants;
+use edwards::EdwardsPoint;
 use prelude::Vec;
+use scalar::Scalar;
+use traits::Identity;
+use window::NafLookupTable5;
 
 #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
 /// Compute \\(aA + bB\\) in variable time, where \\(B\\) is the Ed25519 basepoint.
@@ -68,7 +68,7 @@ use sp1_lib::{ed25519::Ed25519AffinePoint, utils::AffinePoint};
 #[cfg(all(target_os = "zkvm", target_vendor = "succinct"))]
 /// Compute \\(aA + bB\\) in variable time, where \\(B\\) is the Ed25519 basepoint.
 ///
-/// Acclerated with SP1's EdAdd precompile.
+/// Accelerated with SP1's EdAdd syscall.
 #[allow(non_snake_case)]
 pub fn mul(a: &Scalar, A: &EdwardsPoint, b: &Scalar) -> EdwardsPoint {
     let A: Ed25519AffinePoint = (*A).into();
