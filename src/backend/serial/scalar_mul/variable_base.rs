@@ -56,11 +56,7 @@ use sp1_lib::{ed25519::Ed25519AffinePoint, utils::AffinePoint};
 /// Accelerated with SP1's EdAdd syscall.
 #[allow(non_snake_case)]
 pub(crate) fn mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
-    let ed_point: Ed25519AffinePoint = (*point).into();
-
-    let a_bits = scalar.bits();
-    let a_bits = a_bits.iter().map(|bit| *bit == 1).collect::<Vec<bool>>();
-
-    let res = AffinePoint::scalar_multiplication(&a_bits, ed_point).unwrap();
-    res.into()
+    let mut ed_point: Ed25519AffinePoint = (*point).into();
+    ed_point.mul_assign(&sp1_lib::utils::bytes_to_words_le(scalar.as_bytes())).expect("Scalar multiplication failed");
+    ed_point.into()
 }
