@@ -9,14 +9,14 @@
 // - Henry de Valence <hdevalence@hdevalence.ca>
 #![allow(non_snake_case)]
 
-use crate::constants::ED25519_BASEPOINT_POINT;
-use backend::serial::curve_models::{ProjectiveNielsPoint, ProjectivePoint};
 use constants;
-use edwards::EdwardsPoint;
-use prelude::Vec;
-use scalar::Scalar;
 use traits::Identity;
+use scalar::Scalar;
+use edwards::EdwardsPoint;
+use backend::serial::curve_models::{ProjectiveNielsPoint, ProjectivePoint};
 use window::NafLookupTable5;
+use crate::constants::ED25519_BASEPOINT_POINT;
+use prelude::Vec;
 
 #[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
 /// Compute \\(aA + bB\\) in variable time, where \\(B\\) is the Ed25519 basepoint.
