@@ -8,6 +8,7 @@ use window::LookupTable;
 use prelude::Vec;
 use crate::constants::ED25519_BASEPOINT_POINT;
 
+#[cfg(not(all(target_os = "zkvm", target_vendor = "succinct")))]
 /// Perform constant-time, variable-base scalar multiplication.
 pub(crate) fn mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
     // Construct a lookup table of [P,2P,3P,4P,5P,6P,7P,8P]
@@ -25,6 +26,7 @@ pub(crate) fn mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
     //    s*P = P*s_0 + 16*(P*s_1 + 16*(P*s_2 + 16*( ... + P*s_63)...))
     //
     // We sum right-to-left.
+    
     // Unwrap first loop iteration to save computing 16*identity
     let mut tmp2;
     let mut tmp3 = EdwardsPoint::identity();
