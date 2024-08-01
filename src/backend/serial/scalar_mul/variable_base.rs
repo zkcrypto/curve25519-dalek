@@ -61,7 +61,6 @@ pub(crate) fn mul(point: &EdwardsPoint, scalar: &Scalar) -> EdwardsPoint {
     let a_bits = scalar.bits();
     let a_bits = a_bits.iter().map(|bit| *bit == 1).collect::<Vec<bool>>();
 
-    // This call to multi_scalar_multiplication does not make use of the identity point in the computation.
     let res = AffinePoint::scalar_multiplication(
         &a_bits,
         ed_point,
