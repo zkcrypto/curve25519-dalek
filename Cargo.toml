@@ -48,7 +48,7 @@ zeroize = { version = "1", default-features = false }
 cfg-if = "1.0"
 
 [target.'cfg(all(target_os = "zkvm", target_vendor = "succinct"))'.dependencies]
-sp1-lib = "^1.1.0"
+sp1-lib = "3.0.0"
 anyhow = "1.0"
 
 [features]
